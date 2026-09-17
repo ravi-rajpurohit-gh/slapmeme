@@ -159,13 +159,6 @@ impl PlayerHandle {
         !list_sounds(&self.sounds_dir.join(bundle)).is_empty()
     }
 
-    pub fn first_playable_bundle(&self) -> Option<String> {
-        self.list_bundles()
-            .into_iter()
-            .find(|bundle| bundle.count > 0)
-            .map(|bundle| bundle.name)
-    }
-
     // ── Bundle Management ───────────────────────────
 
     pub fn list_bundles(&self) -> Vec<BundleInfo> {
