@@ -13,6 +13,20 @@ pub enum PlaybackOrder {
     InOrder,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ThemePreference {
+    System,
+    Light,
+    Dark,
+}
+
+impl Default for ThemePreference {
+    fn default() -> Self {
+        Self::System
+    }
+}
+
 impl Default for PlaybackOrder {
     fn default() -> Self {
         Self::Random
@@ -45,6 +59,7 @@ pub struct Settings {
     pub selected_sounds: Vec<SelectedSound>,
     pub playback_order: PlaybackOrder,
     pub nsfw_enabled: bool,
+    pub theme: ThemePreference,
     pub port_rules: Vec<PortRule>,
     pub hide_support_prompt: bool,
 }
@@ -65,6 +80,7 @@ impl Default for Settings {
             selected_sounds: Vec::new(),
             playback_order: PlaybackOrder::Random,
             nsfw_enabled: false,
+            theme: ThemePreference::System,
             port_rules: PortKind::all()
                 .into_iter()
                 .map(PortRule::default_for)
