@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="src/assets/logo.png" alt="The Moaning Guy" width="280" />
+  <img src="src/assets/meme-machine-icon.png" alt="Meme Machine" width="180" />
 </p>
 
-<h1 align="center">The Moaning Guy</h1>
+<h1 align="center">Meme Machine</h1>
 
 <p align="center">
-  Plays moaning sounds when you slap your laptop. Inspired by <a href="https://slapmac.com">SlapMac</a> - but for Windows, macOS, and Linux.
+  A local, slap-triggered meme soundboard for Windows, macOS, and Linux.
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 ## How It Works
 
-When available, **The Moaning Guy can use a built-in accelerometer / motion sensor** for more precise slap detection. On devices without sensor support, it automatically falls back to the **microphone detector**.
+When available, **Meme Machine can use a built-in accelerometer / motion sensor** for more precise slap detection. On devices without sensor support, it automatically falls back to the **microphone detector**.
 
 A slap on the laptop chassis produces a sharp, short impulse that is easy to distinguish from normal audio. The app listens in real time, detects either motion spikes or microphone amplitude spikes above a configurable threshold, and plays a random sound from your selected bundle.
 
@@ -32,8 +32,12 @@ Mic Input -> Amplitude Analysis -> Spike Detection -> Sound Playback
              (cpal)              (threshold + cooldown)    (rodio)
 ```
 
-- **Volume scales with force** - harder slap = louder moan
-- **Shuffle bag** - plays through all sounds before repeating any
+- **Bundled starter packs** - OG Memes, Bollywood, Hollywood, TV & Internet, plus an opt-in After Dark pack
+- **Pick packs or individual sounds** - build a mix from whole categories or a hand-picked set
+- **Random or in-order playback** - choose a shuffle bag or predictable playlist
+- **Local-first library** - starter sounds are copied to app data on first run and custom audio stays on-device
+- **Opt-in NSFW mode** - mature packs remain locked until deliberately enabled
+- **Volume scales with force** - harder slap = louder sound
 - **No overlap** - new trigger stops the previous sound
 - **Accelerometer mode** - use supported sensor hardware for tighter slap detection
 - **Microphone fallback** - works on devices without a motion sensor
@@ -77,8 +81,9 @@ Mic Input -> Amplitude Analysis -> Spike Detection -> Sound Playback
        +--------v--------+    <- %APPDATA% / ~/Library / ~/.local/share
        |   App Data Dir  |
        |   sounds/       |
-       |     bundle-a/   |
-       |     bundle-b/   |
+       |     OG Memes/   |
+       |     Bollywood/  |
+       |     ...         |
        |   settings.json |
        +-----------------+
 ```
@@ -128,13 +133,13 @@ Produces platform-specific installers in `src-tauri/target/release/bundle/`.
 
 1. Launch the app - it sits in your **system tray**
 2. Right-click the tray icon -> **Settings**
-3. Create a **sound bundle** and import your audio files (`wav`, `mp3`, `ogg`, `flac`)
-4. Pick **Accelerometer** or **Microphone** mode when available
-5. Configure **Port Detection** rules for connect/remove events
-6. Adjust **sensitivity**, **cooldown**, and **volume**
-7. Save - then slap your laptop
+3. Pick a category card, then add the full pack or select individual sounds
+4. Choose **Random** or **In order** playback
+5. Optionally unlock the **After Dark** category from the explicit NSFW control
+6. Pick **Accelerometer** or **Microphone** mode when available
+7. Adjust **sensitivity**, **cooldown**, and **volume**, then save
 
-The settings screen also includes a small support prompt and footer links for GitHub Sponsors, Ko-fi, UPI (`x.pulseop@axl`), and starring the repo.
+You can also create custom collections and import `wav`, `mp3`, `ogg`, or `flac` files locally.
 
 ## Safety & Limitations
 
@@ -149,16 +154,11 @@ The settings screen also includes a small support prompt and footer links for Gi
 
 This software is provided "as is", without warranty of any kind. The author is not responsible for any damage, data loss, hardware issues, or unintended behavior that may result from using the app.
 
-## Adding Sounds
+## Sound Library
 
-The app ships without sounds. You bring your own:
+The app ships with five compact starter packs under `src-tauri/resources/sounds/`. They are original synthesized stingers designed as safe placeholders for each mood, not clips from films, shows, or creators. On first launch, the app copies any missing starter files into its app-data `sounds/` directory without overwriting a user's files.
 
-1. Open Settings -> create a bundle (for example, `anime` or `dramatic`)
-2. Click **+ Add Sound Files** inside the bundle
-3. Select audio files from your machine (`wav`, `mp3`, `ogg`, `flac`)
-4. Select the bundle as active and Save
-
-Sounds are stored in your app data directory and persist across updates.
+To add your own audio, create a custom collection, choose it in the library, and use **Add local sounds**. Supported formats are `wav`, `mp3`, `ogg`, and `flac`; your library persists across updates.
 
 ## Project Site
 

@@ -2425,6 +2425,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
+name = "meme-machine"
+version = "0.1.0"
+dependencies = [
+ "battery",
+ "cpal",
+ "display-info",
+ "hidapi",
+ "libc",
+ "objc2-core-foundation",
+ "objc2-io-kit",
+ "rand 0.9.2",
+ "rodio",
+ "rusb",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-shell",
+ "tauri-plugin-single-instance",
+ "udev",
+ "windows-sys 0.59.0",
+ "wmi",
+]
+
+[[package]]
 name = "memmap2"
 version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4779,33 +4806,6 @@ checksum = "c4790fc369d5a530f4b544b094e31388b9b3a37c0f4652ade4505945f5660d24"
 dependencies = [
  "new_debug_unreachable",
  "utf-8",
-]
-
-[[package]]
-name = "the-moaning-guy"
-version = "0.1.0"
-dependencies = [
- "battery",
- "cpal",
- "display-info",
- "hidapi",
- "libc",
- "objc2-core-foundation",
- "objc2-io-kit",
- "rand 0.9.2",
- "rodio",
- "rusb",
- "serde",
- "serde_json",
- "sysinfo",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-shell",
- "tauri-plugin-single-instance",
- "udev",
- "windows-sys 0.59.0",
- "wmi",
 ]
 
 [[package]]

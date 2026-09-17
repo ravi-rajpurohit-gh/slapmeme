@@ -733,7 +733,7 @@ struct MicState {
     /// After a trigger, we suppress detection for this duration so the
     /// sound playing through the speakers doesn't re-trigger the detector
     /// (feedback loop).  This is longer than the user cooldown because
-    /// moan sounds can last 3-5 seconds.
+    /// Meme sounds can last several seconds.
     suppress_until: Instant,
 }
 
@@ -766,7 +766,7 @@ fn build_microphone_detector(
     // ~20 callbacks ≈ 400 ms at 48 kHz / 1024-sample buffers
     const CALIBRATION_CALLBACKS: u32 = 20;
     // Crest factor (peak / RMS) threshold — a physical slap is extremely
-    // impulsive (crest 4–10).  Speaker playback of moans/voice sits around
+    // impulsive (crest 4–10). Speaker playback of a sound effect or voice sits around
     // 1.5–2.0.  Setting this to 2.5 cleanly separates the two without
     // needing aggressive suppression.
     const CREST_FACTOR_MIN: f32 = 2.5;
@@ -1045,4 +1045,3 @@ fn decode_sensor_sample(report: &[u8]) -> Option<[f32; 3]> {
         None
     }
 }
-

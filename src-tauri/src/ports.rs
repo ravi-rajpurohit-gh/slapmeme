@@ -374,7 +374,7 @@ fn spawn_windows_monitor_loop(
     unsafe {
         let (direct_tx, direct_rx) = mpsc::channel::<(PortKind, bool)>();
         let hinstance = GetModuleHandleW(null());
-        let class_name = wide_string("TheMoaningGuyPortMonitor");
+        let class_name = wide_string("MemeMachinePortMonitor");
 
         let wndclass = WNDCLASSW {
             style: 0,

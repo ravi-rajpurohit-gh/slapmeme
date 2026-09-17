@@ -3,6 +3,6 @@
 <plist version="1.0">
 <dict>
     <key>NSMicrophoneUsageDescription</key>
-    <string>The Moaning Guy uses the microphone to detect slaps on your laptop.</string>
+    <string>Meme Machine uses the microphone to detect slaps on your laptop and play locally selected sounds.</string>
 </dict>
 </plist>

@@ -1,8 +1,8 @@
 {
-  "name": "the-moaning-guy",
+  "name": "meme-machine",
   "private": true,
   "version": "0.1.0",
-  "description": "Plays moaning sounds when you slap your laptop",
+  "description": "A slap-triggered meme soundboard for your laptop",
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",

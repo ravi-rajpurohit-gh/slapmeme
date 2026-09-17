@@ -1,14 +1,17 @@
 use rand::seq::SliceRandom;
 use rodio::{Decoder, OutputStream, Sink};
+use crate::settings::{PlaybackOrder, SelectedSound};
+use std::collections::HashSet;
 use std::fs;
 use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::mpsc;
 
 struct PlayCmd {
-    bundle: String,
+    files: Vec<PathBuf>,
     volume: f32,
     intensity: f32,
+    playback_order: PlaybackOrder,
 }
 
 /// Thread-safe handle to play sounds (Send + Sync).
@@ -22,8 +25,6 @@ impl PlayerHandle {
         fs::create_dir_all(&sounds_dir).ok();
 
         let (cmd_tx, cmd_rx) = mpsc::channel::<PlayCmd>();
-        let dir = sounds_dir.clone();
-
         std::thread::spawn(move || {
             let (_stream, stream_handle) = match OutputStream::try_default() {
                 Ok(s) => s,
@@ -36,7 +37,8 @@ impl PlayerHandle {
             // Shuffle bag: plays all sounds before repeating any
             let mut bag: Vec<PathBuf> = Vec::new();
             let mut bag_index: usize = 0;
-            let mut bag_bundle = String::new();
+            let mut bag_source: Vec<PathBuf> = Vec::new();
+            let mut bag_order = PlaybackOrder::Random;
 
             // Single sink — stops previous sound before playing next
             let mut current_sink: Option<Sink> = None;
@@ -44,20 +46,20 @@ impl PlayerHandle {
             loop {
                 match cmd_rx.recv() {
                     Ok(cmd) => {
-                        let bundle_dir = dir.join(&cmd.bundle);
-                        let files = list_sounds(&bundle_dir);
-
-                        if files.is_empty() {
-                            eprintln!("No sound files in bundle {:?}", cmd.bundle);
+                        if cmd.files.is_empty() {
+                            eprintln!("No sound files in the active selection");
                             continue;
                         }
 
-                        // Reset bag if bundle changed or bag exhausted or files changed
-                        if cmd.bundle != bag_bundle || bag_index >= bag.len() || bag.len() != files.len() {
-                            bag = files;
-                            bag.shuffle(&mut rand::rng());
+                        // A stable queue supports either an in-order playlist or a shuffle bag.
+                        if cmd.files != bag_source || cmd.playback_order != bag_order || bag_index >= bag.len() {
+                            bag = cmd.files.clone();
+                            if cmd.playback_order == PlaybackOrder::Random {
+                                bag.shuffle(&mut rand::rng());
+                            }
                             bag_index = 0;
-                            bag_bundle = cmd.bundle.clone();
+                            bag_source = cmd.files;
+                            bag_order = cmd.playback_order;
                         }
 
                         let file = &bag[bag_index];
@@ -93,13 +95,60 @@ impl PlayerHandle {
     }
 
     pub fn play(&self, bundle: &str, volume: f32, intensity: f32) {
+        self.play_selection(&[bundle.to_string()], &[], PlaybackOrder::Random, volume, intensity);
+    }
+
+    pub fn play_selection(
+        &self,
+        categories: &[String],
+        selected_sounds: &[SelectedSound],
+        playback_order: PlaybackOrder,
+        volume: f32,
+        intensity: f32,
+    ) {
+        let files = self.files_for_selection(categories, selected_sounds);
         self.cmd_tx
             .send(PlayCmd {
-                bundle: bundle.to_string(),
+                files,
                 volume,
                 intensity,
+                playback_order,
             })
             .ok();
+    }
+
+    pub fn files_for_selection(
+        &self,
+        categories: &[String],
+        selected_sounds: &[SelectedSound],
+    ) -> Vec<PathBuf> {
+        let mut files = Vec::new();
+        let mut seen = HashSet::new();
+
+        for category in categories {
+            for path in list_sounds(&self.sounds_dir.join(category)) {
+                if seen.insert(path.clone()) {
+                    files.push(path);
+                }
+            }
+        }
+
+        for sound in selected_sounds {
+            let path = self.sounds_dir.join(&sound.category).join(&sound.filename);
+            if path.is_file() && is_sound_file(&path) && seen.insert(path.clone()) {
+                files.push(path);
+            }
+        }
+
+        files.sort();
+        files
+    }
+
+    pub fn install_starter_library(&self, source: &std::path::Path) -> Result<(), String> {
+        if !source.exists() {
+            return Err(format!("Bundled sound library was not found at {:?}", source));
+        }
+        copy_missing_tree(source, &self.sounds_dir)
     }
 
     pub fn bundle_has_sounds(&self, bundle: &str) -> bool {
@@ -231,17 +280,35 @@ fn validate_bundle_name(name: &str) -> Result<(), String> {
 }
 
 fn list_sounds(dir: &std::path::Path) -> Vec<PathBuf> {
-    match fs::read_dir(dir) {
+    let mut sounds = match fs::read_dir(dir) {
         Ok(entries) => entries
             .filter_map(|e| e.ok())
             .map(|e| e.path())
-            .filter(|p| {
-                matches!(
-                    p.extension().and_then(|e| e.to_str()),
-                    Some("wav" | "mp3" | "ogg" | "flac")
-                )
-            })
-            .collect(),
+            .filter(|p| is_sound_file(p))
+            .collect::<Vec<_>>(),
         Err(_) => Vec::new(),
+    };
+    sounds.sort();
+    sounds
+}
+
+fn is_sound_file(path: &std::path::Path) -> bool {
+    matches!(
+        path.extension().and_then(|e| e.to_str()).map(|ext| ext.to_ascii_lowercase()),
+        Some(ext) if matches!(ext.as_str(), "wav" | "mp3" | "ogg" | "flac")
+    )
+}
+
+fn copy_missing_tree(source: &std::path::Path, destination: &std::path::Path) -> Result<(), String> {
+    fs::create_dir_all(destination).map_err(|e| format!("Failed to create sound library: {e}"))?;
+    for entry in fs::read_dir(source).map_err(|e| format!("Failed to read starter library: {e}"))? {
+        let entry = entry.map_err(|e| format!("Failed to read starter library entry: {e}"))?;
+        let target = destination.join(entry.file_name());
+        if entry.path().is_dir() {
+            copy_missing_tree(&entry.path(), &target)?;
+        } else if !target.exists() {
+            fs::copy(entry.path(), target).map_err(|e| format!("Failed to install starter sound: {e}"))?;
+        }
     }
+    Ok(())
 }

@@ -12,7 +12,7 @@ use ports::{
     PortMonitorHandle,
 };
 use player::{BundleInfo, PlayerHandle, SoundInfo};
-use settings::Settings;
+use settings::{is_nsfw_category, Settings};
 
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -60,16 +60,56 @@ fn show_settings_window(app: &tauri::AppHandle) {
 }
 
 fn sanitize_settings_for_available_bundles(settings: &mut Settings, player: &PlayerHandle) {
-    let fallback = player.first_playable_bundle().unwrap_or_default();
+    let nsfw_enabled = settings.nsfw_enabled;
+    let fallback = player
+        .list_bundles()
+        .into_iter()
+        .find(|bundle| bundle.count > 0 && !is_nsfw_category(&bundle.name))
+        .or_else(|| player.list_bundles().into_iter().find(|bundle| bundle.count > 0))
+        .map(|bundle| bundle.name)
+        .unwrap_or_default();
 
     if !player.bundle_has_sounds(&settings.bundle) {
         settings.bundle = fallback.clone();
     }
 
     for rule in settings.port_rules.iter_mut() {
-        if !player.bundle_has_sounds(&rule.bundle) {
+        if !player.bundle_has_sounds(&rule.bundle)
+            || (!nsfw_enabled && is_nsfw_category(&rule.bundle))
+        {
             rule.bundle = fallback.clone();
         }
+    }
+
+    settings.selected_categories.retain(|category| {
+        player.bundle_has_sounds(category)
+            && (nsfw_enabled || !is_nsfw_category(category))
+    });
+    settings.selected_sounds.retain(|sound| {
+        (nsfw_enabled || !is_nsfw_category(&sound.category))
+            && player
+                .list_bundle_sounds(&sound.category)
+                .iter()
+                .any(|item| item.name == sound.filename)
+    });
+
+    // Migrate an existing single-bundle installation into the new mix model.
+    if settings.selected_categories.is_empty()
+        && settings.selected_sounds.is_empty()
+        && player.bundle_has_sounds(&settings.bundle)
+        && (nsfw_enabled || !is_nsfw_category(&settings.bundle))
+    {
+        settings.selected_categories.push(settings.bundle.clone());
+    }
+
+    if settings.selected_categories.is_empty() && settings.selected_sounds.is_empty() && !fallback.is_empty() {
+        settings.selected_categories.push(fallback.clone());
+    }
+
+    if let Some(category) = settings.selected_categories.first() {
+        settings.bundle = category.clone();
+    } else if let Some(sound) = settings.selected_sounds.first() {
+        settings.bundle = sound.category.clone();
     }
 
     if settings.enabled && settings.bundle.is_empty() {
@@ -101,7 +141,7 @@ fn save_settings(
     if sc.enabled {
         state
             .detector
-            .start(sc.detection_mode, sc.sensitivity, sc.cooldown_ms);
+            .start(sc.detection_mode, sc.detection_threshold(), sc.cooldown_ms);
     } else {
         state.detector.stop();
     }
@@ -125,7 +165,7 @@ fn toggle_enabled(
     if sc.enabled {
         state
             .detector
-            .start(sc.detection_mode, sc.sensitivity, sc.cooldown_ms);
+            .start(sc.detection_mode, sc.detection_threshold(), sc.cooldown_ms);
     } else {
         state.detector.stop();
     }
@@ -137,6 +177,30 @@ fn toggle_enabled(
 #[tauri::command]
 fn test_sound(state: tauri::State<'_, AppState>, volume: f32, bundle: String) {
     state.player.play(&bundle, volume, 1.0);
+}
+
+#[tauri::command]
+fn test_selection(
+    state: tauri::State<'_, AppState>,
+    mut selection: Settings,
+) -> Result<(), String> {
+    selection.validate();
+    sanitize_settings_for_available_bundles(&mut selection, &state.player);
+    if state
+        .player
+        .files_for_selection(&selection.selected_categories, &selection.selected_sounds)
+        .is_empty()
+    {
+        return Err("Choose a category or at least one sound first.".to_string());
+    }
+    state.player.play_selection(
+        &selection.selected_categories,
+        &selection.selected_sounds,
+        selection.playback_order,
+        selection.output_volume(),
+        1.0,
+    );
+    Ok(())
 }
 
 #[tauri::command]
@@ -282,6 +346,23 @@ fn main() {
                 .join("sounds");
 
             let player = Arc::new(PlayerHandle::new(sounds_dir));
+            let resource_library = app
+                .path()
+                .resource_dir()
+                .ok()
+                .and_then(|dir| {
+                    [dir.join("resources").join("sounds"), dir.join("sounds")]
+                        .into_iter()
+                        .find(|candidate| candidate.exists())
+                })
+                .unwrap_or_else(|| {
+                    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                        .join("resources")
+                        .join("sounds")
+                });
+            if let Err(error) = player.install_starter_library(&resource_library) {
+                eprintln!("Could not install starter sound packs: {error}");
+            }
             let mut settings = settings;
             settings.validate();
             sanitize_settings_for_available_bundles(&mut settings, &player);
@@ -292,7 +373,13 @@ fn main() {
             let settings_ref = shared_settings.clone();
             let detector = DetectorHandle::spawn(move |intensity| {
                 let s = settings_ref.lock().unwrap_or_else(|e| e.into_inner());
-                player_ref.play(&s.bundle, s.volume, intensity);
+                player_ref.play_selection(
+                    &s.selected_categories,
+                    &s.selected_sounds,
+                    s.playback_order,
+                    s.output_volume(),
+                    intensity,
+                );
             });
 
             let player_ref = player.clone();
@@ -316,7 +403,7 @@ fn main() {
                         if elapsed >= port_cooldown {
                             *lt = Instant::now();
                             drop(lt);
-                            player_ref.play(&rule.bundle, s.volume, 0.9);
+                            player_ref.play(&rule.bundle, s.output_volume(), 0.9);
                         }
                     }
                 }
@@ -325,7 +412,7 @@ fn main() {
             if settings.enabled {
                 detector.start(
                     settings.detection_mode,
-                    settings.sensitivity,
+                    settings.detection_threshold(),
                     settings.cooldown_ms,
                 );
             }
@@ -356,7 +443,7 @@ fn main() {
             let _tray = TrayIconBuilder::new()
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .tooltip("The Moaning Guy")
+                .tooltip("Meme Machine")
                 .icon(app.default_window_icon().unwrap().clone())
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, .. } = event {
@@ -380,7 +467,7 @@ fn main() {
                         if enabled {
                             state
                                 .detector
-                                .start(s.detection_mode, s.sensitivity, s.cooldown_ms);
+                                .start(s.detection_mode, s.detection_threshold(), s.cooldown_ms);
                         } else {
                             state.detector.stop();
                         }
@@ -395,7 +482,13 @@ fn main() {
                     "test" => {
                         let state: tauri::State<'_, AppState> = app.state();
                         let s = state.settings.lock().unwrap_or_else(|e| e.into_inner());
-                        state.player.play(&s.bundle, s.volume, 0.8);
+                        state.player.play_selection(
+                            &s.selected_categories,
+                            &s.selected_sounds,
+                            s.playback_order,
+                            s.output_volume(),
+                            0.8,
+                        );
                     }
                     "quit" => {
                         app.exit(0);
@@ -414,6 +507,7 @@ fn main() {
             save_settings,
             toggle_enabled,
             test_sound,
+            test_selection,
             list_bundles,
             create_bundle,
             delete_bundle,
