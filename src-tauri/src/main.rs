@@ -188,7 +188,11 @@ fn test_selection(
     sanitize_settings_for_available_bundles(&mut selection, &state.player);
     if state
         .player
-        .files_for_selection(&selection.selected_categories, &selection.selected_sounds)
+        .files_for_selection(
+            &selection.selected_categories,
+            &selection.selected_sounds,
+            &selection.sound_orders,
+        )
         .is_empty()
     {
         return Err("Choose a category or at least one sound first.".to_string());
@@ -196,6 +200,7 @@ fn test_selection(
     state.player.play_selection(
         &selection.selected_categories,
         &selection.selected_sounds,
+        &selection.sound_orders,
         selection.playback_order,
         selection.output_volume(),
         1.0,
@@ -376,6 +381,7 @@ fn main() {
                 player_ref.play_selection(
                     &s.selected_categories,
                     &s.selected_sounds,
+                    &s.sound_orders,
                     s.playback_order,
                     s.output_volume(),
                     intensity,
@@ -485,6 +491,7 @@ fn main() {
                         state.player.play_selection(
                             &s.selected_categories,
                             &s.selected_sounds,
+                            &s.sound_orders,
                             s.playback_order,
                             s.output_volume(),
                             0.8,

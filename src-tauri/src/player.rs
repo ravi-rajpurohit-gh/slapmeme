@@ -1,7 +1,7 @@
 use rand::seq::SliceRandom;
 use rodio::{Decoder, OutputStream, Sink};
 use crate::settings::{PlaybackOrder, SelectedSound};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -95,18 +95,26 @@ impl PlayerHandle {
     }
 
     pub fn play(&self, bundle: &str, volume: f32, intensity: f32) {
-        self.play_selection(&[bundle.to_string()], &[], PlaybackOrder::Random, volume, intensity);
+        self.play_selection(
+            &[bundle.to_string()],
+            &[],
+            &HashMap::new(),
+            PlaybackOrder::Random,
+            volume,
+            intensity,
+        );
     }
 
     pub fn play_selection(
         &self,
         categories: &[String],
         selected_sounds: &[SelectedSound],
+        sound_orders: &HashMap<String, Vec<String>>,
         playback_order: PlaybackOrder,
         volume: f32,
         intensity: f32,
     ) {
-        let files = self.files_for_selection(categories, selected_sounds);
+        let files = self.files_for_selection(categories, selected_sounds, sound_orders);
         self.cmd_tx
             .send(PlayCmd {
                 files,
@@ -121,12 +129,22 @@ impl PlayerHandle {
         &self,
         categories: &[String],
         selected_sounds: &[SelectedSound],
+        sound_orders: &HashMap<String, Vec<String>>,
     ) -> Vec<PathBuf> {
         let mut files = Vec::new();
         let mut seen = HashSet::new();
 
         for category in categories {
-            for path in list_sounds(&self.sounds_dir.join(category)) {
+            let mut category_files = list_sounds(&self.sounds_dir.join(category));
+            if let Some(order) = sound_orders.get(category) {
+                category_files.sort_by_key(|path| {
+                    path.file_name()
+                        .and_then(|name| name.to_str())
+                        .and_then(|name| order.iter().position(|item| item == name))
+                        .unwrap_or(usize::MAX)
+                });
+            }
+            for path in category_files {
                 if seen.insert(path.clone()) {
                     files.push(path);
                 }

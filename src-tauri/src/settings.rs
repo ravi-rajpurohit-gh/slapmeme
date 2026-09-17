@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tauri::Manager as _;
@@ -57,6 +58,8 @@ pub struct Settings {
     pub bundle: String,
     pub selected_categories: Vec<String>,
     pub selected_sounds: Vec<SelectedSound>,
+    pub album_order: Vec<String>,
+    pub sound_orders: HashMap<String, Vec<String>>,
     pub playback_order: PlaybackOrder,
     pub nsfw_enabled: bool,
     pub theme: ThemePreference,
@@ -78,6 +81,14 @@ impl Default for Settings {
             bundle: "OG Memes".to_string(),
             selected_categories: vec!["OG Memes".to_string()],
             selected_sounds: Vec::new(),
+            album_order: vec![
+                "OG Memes".to_string(),
+                "Bollywood".to_string(),
+                "Hollywood".to_string(),
+                "TV & Internet".to_string(),
+                "After Dark".to_string(),
+            ],
+            sound_orders: HashMap::new(),
             playback_order: PlaybackOrder::Random,
             nsfw_enabled: false,
             theme: ThemePreference::System,
