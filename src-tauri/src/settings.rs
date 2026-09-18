@@ -60,6 +60,9 @@ pub struct Settings {
     pub selected_sounds: Vec<SelectedSound>,
     pub album_order: Vec<String>,
     pub sound_orders: HashMap<String, Vec<String>>,
+    /// Prevents a future launch from deleting a user-created pack that happens
+    /// to use one of the names from the original starter library.
+    pub legacy_starter_library_removed: bool,
     pub playback_order: PlaybackOrder,
     pub nsfw_enabled: bool,
     pub theme: ThemePreference,
@@ -78,17 +81,19 @@ impl Default for Settings {
             use_system_volume: true,
             enabled: false,
             detection_mode: DetectionMode::Microphone,
-            bundle: "OG Memes".to_string(),
-            selected_categories: vec!["OG Memes".to_string()],
+            bundle: String::new(),
+            selected_categories: Vec::new(),
             selected_sounds: Vec::new(),
             album_order: vec![
-                "OG Memes".to_string(),
-                "Bollywood".to_string(),
-                "Hollywood".to_string(),
-                "TV & Internet".to_string(),
-                "After Dark".to_string(),
+                "Trendy".to_string(),
+                "OG".to_string(),
+                "OG-Indian".to_string(),
+                "TV".to_string(),
+                "Moan".to_string(),
+                "Chodu CID".to_string(),
             ],
             sound_orders: HashMap::new(),
+            legacy_starter_library_removed: false,
             playback_order: PlaybackOrder::Random,
             nsfw_enabled: false,
             theme: ThemePreference::System,
@@ -175,7 +180,11 @@ impl Settings {
 }
 
 pub fn is_nsfw_category(category: &str) -> bool {
-    category.eq_ignore_ascii_case("After Dark") || category.eq_ignore_ascii_case("NSFW")
+    category.eq_ignore_ascii_case("Moan")
+        || category.eq_ignore_ascii_case("Chodu CID")
+        // Retain the legacy names here so a stale setting cannot expose them.
+        || category.eq_ignore_ascii_case("After Dark")
+        || category.eq_ignore_ascii_case("NSFW")
 }
 
 fn default_true() -> bool {

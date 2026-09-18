@@ -162,11 +162,23 @@ impl PlayerHandle {
         files
     }
 
-    pub fn install_starter_library(&self, source: &std::path::Path) -> Result<(), String> {
-        if !source.exists() {
-            return Err(format!("Bundled sound library was not found at {:?}", source));
+    pub fn ensure_bundles(&self, bundles: &[&str]) -> Result<(), String> {
+        for name in bundles {
+            fs::create_dir_all(self.sounds_dir.join(name))
+                .map_err(|e| format!("Failed to create sound pack '{name}': {e}"))?;
         }
-        copy_missing_tree(source, &self.sounds_dir)
+        Ok(())
+    }
+
+    pub fn remove_bundles(&self, bundles: &[&str]) -> Result<(), String> {
+        for name in bundles {
+            let dir = self.sounds_dir.join(name);
+            if dir.exists() {
+                fs::remove_dir_all(&dir)
+                    .map_err(|e| format!("Failed to remove legacy sound pack '{name}': {e}"))?;
+            }
+        }
+        Ok(())
     }
 
     pub fn bundle_has_sounds(&self, bundle: &str) -> bool {
@@ -308,18 +320,4 @@ fn is_sound_file(path: &std::path::Path) -> bool {
         path.extension().and_then(|e| e.to_str()).map(|ext| ext.to_ascii_lowercase()),
         Some(ext) if matches!(ext.as_str(), "wav" | "mp3" | "ogg" | "flac")
     )
-}
-
-fn copy_missing_tree(source: &std::path::Path, destination: &std::path::Path) -> Result<(), String> {
-    fs::create_dir_all(destination).map_err(|e| format!("Failed to create sound library: {e}"))?;
-    for entry in fs::read_dir(source).map_err(|e| format!("Failed to read starter library: {e}"))? {
-        let entry = entry.map_err(|e| format!("Failed to read starter library entry: {e}"))?;
-        let target = destination.join(entry.file_name());
-        if entry.path().is_dir() {
-            copy_missing_tree(&entry.path(), &target)?;
-        } else if !target.exists() {
-            fs::copy(entry.path(), target).map_err(|e| format!("Failed to install starter sound: {e}"))?;
-        }
-    }
-    Ok(())
 }

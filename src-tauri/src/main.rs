@@ -23,6 +23,9 @@ use tauri::{
     Emitter, Manager,
 };
 
+const DEFAULT_ALBUMS: &[&str] = &["Trendy", "OG", "OG-Indian", "TV", "Moan", "Chodu CID"];
+const LEGACY_STARTER_ALBUMS: &[&str] = &["OG Memes", "Bollywood", "Hollywood", "TV & Internet", "After Dark"];
+
 struct AppState {
     settings: Arc<Mutex<Settings>>,
     detector: DetectorHandle,
@@ -342,7 +345,7 @@ fn main() {
                 let _ = app.handle().set_dock_visibility(false);
             }
 
-            let settings = Settings::load(&app.handle());
+            let mut settings = Settings::load(&app.handle());
 
             let sounds_dir = app
                 .path()
@@ -351,24 +354,22 @@ fn main() {
                 .join("sounds");
 
             let player = Arc::new(PlayerHandle::new(sounds_dir));
-            let resource_library = app
-                .path()
-                .resource_dir()
-                .ok()
-                .and_then(|dir| {
-                    [dir.join("resources").join("sounds"), dir.join("sounds")]
-                        .into_iter()
-                        .find(|candidate| candidate.exists())
-                })
-                .unwrap_or_else(|| {
-                    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                        .join("resources")
-                        .join("sounds")
-                });
-            if let Err(error) = player.install_starter_library(&resource_library) {
-                eprintln!("Could not install starter sound packs: {error}");
+            if !settings.legacy_starter_library_removed {
+                if let Err(error) = player.remove_bundles(LEGACY_STARTER_ALBUMS) {
+                    eprintln!("Could not remove legacy starter sound packs: {error}");
+                }
+                settings.selected_categories.retain(|name| !LEGACY_STARTER_ALBUMS.contains(&name.as_str()));
+                settings.selected_sounds.retain(|sound| !LEGACY_STARTER_ALBUMS.contains(&sound.category.as_str()));
+                settings.sound_orders.retain(|name, _| !LEGACY_STARTER_ALBUMS.contains(&name.as_str()));
+                settings.album_order = DEFAULT_ALBUMS.iter().map(|name| (*name).to_string()).collect();
+                if LEGACY_STARTER_ALBUMS.contains(&settings.bundle.as_str()) {
+                    settings.bundle.clear();
+                }
+                settings.legacy_starter_library_removed = true;
             }
-            let mut settings = settings;
+            if let Err(error) = player.ensure_bundles(DEFAULT_ALBUMS) {
+                eprintln!("Could not create default sound packs: {error}");
+            }
             settings.validate();
             sanitize_settings_for_available_bundles(&mut settings, &player);
             settings.save(&app.handle());

@@ -32,10 +32,10 @@ Mic Input -> Amplitude Analysis -> Spike Detection -> Sound Playback
              (cpal)              (threshold + cooldown)    (rodio)
 ```
 
-- **Bundled starter packs** - OG Memes, Bollywood, Hollywood, TV & Internet, plus an opt-in After Dark pack
+- **Ready-to-fill albums** - Trendy, OG, OG-Indian, TV, plus opt-in Moan and Chodu CID albums
 - **Pick packs or individual sounds** - build a mix from whole categories or a hand-picked set
 - **Random or in-order playback** - choose a shuffle bag or predictable playlist
-- **Local-first library** - starter sounds are copied to app data on first run and custom audio stays on-device
+- **Local-first library** - audio stays on-device in folders you control
 - **Opt-in NSFW mode** - mature packs remain locked until deliberately enabled
 - **Volume scales with force** - harder slap = louder sound
 - **No overlap** - new trigger stops the previous sound
@@ -81,8 +81,12 @@ Mic Input -> Amplitude Analysis -> Spike Detection -> Sound Playback
        +--------v--------+    <- %APPDATA% / ~/Library / ~/.local/share
        |   App Data Dir  |
        |   sounds/       |
-       |     OG Memes/   |
-       |     Bollywood/  |
+       |     Trendy/     |
+       |     OG/         |
+       |     OG-Indian/  |
+       |     TV/         |
+       |     Moan/       |
+       |     Chodu CID/  |
        |     ...         |
        |   settings.json |
        +-----------------+
@@ -135,9 +139,9 @@ Produces platform-specific installers in `src-tauri/target/release/bundle/`.
 2. Right-click the tray icon -> **Settings**
 3. Pick a category card, then add the full pack or select individual sounds
 4. Choose **Random** or **In order** playback
-5. Optionally unlock the **After Dark** category from the explicit NSFW control
+5. Optionally unlock the **Moan** and **Chodu CID** albums from the NSFW control
 6. Pick **Accelerometer** or **Microphone** mode when available
-7. Adjust **sensitivity**, **cooldown**, and **volume**, then save
+7. Adjust **sensitivity**, **cooldown**, and **volume**; every change applies immediately
 
 You can also create custom collections and import `wav`, `mp3`, `ogg`, or `flac` files locally.
 
@@ -156,9 +160,9 @@ This software is provided "as is", without warranty of any kind. The author is n
 
 ## Sound Library
 
-The app ships with five compact starter packs under `src-tauri/resources/sounds/`. They are original synthesized stingers designed as safe placeholders for each mood, not clips from films, shows, or creators. On first launch, the app copies any missing starter files into its app-data `sounds/` directory without overwriting a user's files.
+On macOS, the app creates these empty folders on first launch: `~/Library/Application Support/com.mememachine.desktop/sounds/Trendy`, `OG`, `OG-Indian`, `TV`, `Moan`, and `Chodu CID`.
 
-To add your own audio, create a custom collection, choose it in the library, and use **Add local sounds**. Supported formats are `wav`, `mp3`, `ogg`, and `flac`; your library persists across updates.
+Drop audio directly into the matching folder, or select a pack in the app and use **Details → Add Sounds…**. Supported formats are `wav`, `mp3`, `ogg`, and `flac`; your library persists across updates.
 
 ## Project Site
 
