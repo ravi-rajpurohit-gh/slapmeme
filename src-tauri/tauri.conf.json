@@ -13,13 +13,13 @@
         "label": "settings",
         "title": "Meme Machine",
         "url": "settings.html",
-        "width": 920,
+        "width": 1180,
         "height": 760,
-        "minWidth": 640,
+        "minWidth": 960,
         "minHeight": 600,
         "resizable": true,
         "minimizable": false,
-        "maximizable": false,
+        "maximizable": true,
         "visible": false,
         "center": true
       }
