@@ -158,7 +158,6 @@ impl PlayerHandle {
             }
         }
 
-        files.sort();
         files
     }
 
