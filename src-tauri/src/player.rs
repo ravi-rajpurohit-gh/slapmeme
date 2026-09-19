@@ -276,7 +276,7 @@ impl PlayerHandle {
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Clone)]
 pub struct BundleInfo {
     pub name: String,
     pub count: usize,

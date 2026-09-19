@@ -64,11 +64,13 @@ fn show_settings_window(app: &tauri::AppHandle) {
 
 fn sanitize_settings_for_available_bundles(settings: &mut Settings, player: &PlayerHandle) {
     let nsfw_enabled = settings.nsfw_enabled;
-    let fallback = player
-        .list_bundles()
+    let available_bundles = player.list_bundles();
+    let fallback = available_bundles
+        .iter()
+        .cloned()
         .into_iter()
         .find(|bundle| bundle.count > 0 && !is_nsfw_category(&bundle.name))
-        .or_else(|| player.list_bundles().into_iter().find(|bundle| bundle.count > 0))
+        .or_else(|| available_bundles.iter().cloned().find(|bundle| bundle.count > 0))
         .map(|bundle| bundle.name)
         .unwrap_or_default();
 
@@ -85,7 +87,7 @@ fn sanitize_settings_for_available_bundles(settings: &mut Settings, player: &Pla
     }
 
     settings.selected_categories.retain(|category| {
-        player.bundle_has_sounds(category)
+        available_bundles.iter().any(|bundle| bundle.name == *category)
             && (nsfw_enabled || !is_nsfw_category(category))
     });
     settings.selected_sounds.retain(|sound| {
