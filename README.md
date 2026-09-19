@@ -53,9 +53,9 @@ Mic Input -> Amplitude Analysis -> Spike Detection -> Sound Playback
 |   Pause/Resume · Test · Settings · Quit |
 +--------------+--------------------------+
                |
-       +-------v--------+    <- HTML/CSS/JS (Tauri webview)
-       |  Settings UI   |
-       | (settings.html)|
+       +-------v--------+    <- React + Vite (Tauri webview)
+       |  Desktop UI    |
+       | Library · Mix  |
        +-------+--------+
                | IPC (invoke/emit)
        +-------v--------+
@@ -98,7 +98,7 @@ Mic Input -> Amplitude Analysis -> Spike Detection -> Sound Playback
 |-------|-----------|
 | Framework | [Tauri v2](https://tauri.app) |
 | Backend | Rust |
-| Frontend | Vanilla HTML / CSS / JS |
+| Frontend | React 19 + Vite |
 | Audio Input | [cpal](https://crates.io/crates/cpal) |
 | Audio Output | [rodio](https://crates.io/crates/rodio) |
 | File Dialog | [tauri-plugin-dialog](https://crates.io/crates/tauri-plugin-dialog) |

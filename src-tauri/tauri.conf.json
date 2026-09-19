@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.mememachine.desktop",
   "build": {
-    "frontendDist": "../src"
+    "beforeDevCommand": "npm run vite:dev",
+    "beforeBuildCommand": "npm run build:web",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
   },
   "app": {
     "withGlobalTauri": true,
@@ -12,7 +15,7 @@
       {
         "label": "settings",
         "title": "Meme Machine",
-        "url": "settings.html",
+        "url": "index.html",
         "width": 1180,
         "height": 760,
         "minWidth": 960,
