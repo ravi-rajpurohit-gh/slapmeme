@@ -96,19 +96,6 @@ fn sanitize_settings_for_available_bundles(settings: &mut Settings, player: &Pla
                 .any(|item| item.name == sound.filename)
     });
 
-    // Migrate an existing single-bundle installation into the new mix model.
-    if settings.selected_categories.is_empty()
-        && settings.selected_sounds.is_empty()
-        && player.bundle_has_sounds(&settings.bundle)
-        && (nsfw_enabled || !is_nsfw_category(&settings.bundle))
-    {
-        settings.selected_categories.push(settings.bundle.clone());
-    }
-
-    if settings.selected_categories.is_empty() && settings.selected_sounds.is_empty() && !fallback.is_empty() {
-        settings.selected_categories.push(fallback.clone());
-    }
-
     if let Some(category) = settings.selected_categories.first() {
         settings.bundle = category.clone();
     } else if let Some(sound) = settings.selected_sounds.first() {
