@@ -1,7 +1,7 @@
 use rand::seq::SliceRandom;
 use rodio::{Decoder, OutputStream, Sink};
-use crate::settings::{PlaybackOrder, SelectedSound};
-use std::collections::{HashMap, HashSet};
+use crate::settings::SelectedSound;
+use std::collections::HashSet;
 use std::fs;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -11,7 +11,6 @@ struct PlayCmd {
     files: Vec<PathBuf>,
     volume: f32,
     intensity: f32,
-    playback_order: PlaybackOrder,
 }
 
 /// Thread-safe handle to play sounds (Send + Sync).
@@ -38,7 +37,6 @@ impl PlayerHandle {
             let mut bag: Vec<PathBuf> = Vec::new();
             let mut bag_index: usize = 0;
             let mut bag_source: Vec<PathBuf> = Vec::new();
-            let mut bag_order = PlaybackOrder::Random;
 
             // Single sink — stops previous sound before playing next
             let mut current_sink: Option<Sink> = None;
@@ -51,15 +49,12 @@ impl PlayerHandle {
                             continue;
                         }
 
-                        // A stable queue supports either an in-order playlist or a shuffle bag.
-                        if cmd.files != bag_source || cmd.playback_order != bag_order || bag_index >= bag.len() {
+                        // A fresh shuffle bag plays every chosen sound before repeating one.
+                        if cmd.files != bag_source || bag_index >= bag.len() {
                             bag = cmd.files.clone();
-                            if cmd.playback_order == PlaybackOrder::Random {
-                                bag.shuffle(&mut rand::rng());
-                            }
+                            bag.shuffle(&mut rand::rng());
                             bag_index = 0;
                             bag_source = cmd.files;
-                            bag_order = cmd.playback_order;
                         }
 
                         let file = &bag[bag_index];
@@ -98,8 +93,6 @@ impl PlayerHandle {
         self.play_selection(
             &[bundle.to_string()],
             &[],
-            &HashMap::new(),
-            PlaybackOrder::Random,
             volume,
             intensity,
         );
@@ -109,18 +102,15 @@ impl PlayerHandle {
         &self,
         categories: &[String],
         selected_sounds: &[SelectedSound],
-        sound_orders: &HashMap<String, Vec<String>>,
-        playback_order: PlaybackOrder,
         volume: f32,
         intensity: f32,
     ) {
-        let files = self.files_for_selection(categories, selected_sounds, sound_orders);
+        let files = self.files_for_selection(categories, selected_sounds);
         self.cmd_tx
             .send(PlayCmd {
                 files,
                 volume,
                 intensity,
-                playback_order,
             })
             .ok();
     }
@@ -129,21 +119,12 @@ impl PlayerHandle {
         &self,
         categories: &[String],
         selected_sounds: &[SelectedSound],
-        sound_orders: &HashMap<String, Vec<String>>,
     ) -> Vec<PathBuf> {
         let mut files = Vec::new();
         let mut seen = HashSet::new();
 
         for category in categories {
-            let mut category_files = list_sounds(&self.sounds_dir.join(category));
-            if let Some(order) = sound_orders.get(category) {
-                category_files.sort_by_key(|path| {
-                    path.file_name()
-                        .and_then(|name| name.to_str())
-                        .and_then(|name| order.iter().position(|item| item == name))
-                        .unwrap_or(usize::MAX)
-                });
-            }
+            let category_files = list_sounds(&self.sounds_dir.join(category));
             for path in category_files {
                 if seen.insert(path.clone()) {
                     files.push(path);

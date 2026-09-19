@@ -1,18 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tauri::Manager as _;
 
 use crate::detector::DetectionMode;
 use crate::ports::{repair_rules, PortKind, PortRule};
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum PlaybackOrder {
-    Random,
-    InOrder,
-}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -25,12 +17,6 @@ pub enum ThemePreference {
 impl Default for ThemePreference {
     fn default() -> Self {
         Self::System
-    }
-}
-
-impl Default for PlaybackOrder {
-    fn default() -> Self {
-        Self::Random
     }
 }
 
@@ -59,11 +45,9 @@ pub struct Settings {
     pub selected_categories: Vec<String>,
     pub selected_sounds: Vec<SelectedSound>,
     pub album_order: Vec<String>,
-    pub sound_orders: HashMap<String, Vec<String>>,
     /// Prevents a future launch from deleting a user-created pack that happens
     /// to use one of the names from the original starter library.
     pub legacy_starter_library_removed: bool,
-    pub playback_order: PlaybackOrder,
     pub nsfw_enabled: bool,
     pub theme: ThemePreference,
     pub port_rules: Vec<PortRule>,
@@ -92,9 +76,7 @@ impl Default for Settings {
                 "Moan".to_string(),
                 "Chodu CID".to_string(),
             ],
-            sound_orders: HashMap::new(),
             legacy_starter_library_removed: false,
-            playback_order: PlaybackOrder::Random,
             nsfw_enabled: false,
             theme: ThemePreference::System,
             port_rules: PortKind::all()

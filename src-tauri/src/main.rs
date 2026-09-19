@@ -183,7 +183,6 @@ fn test_selection(
         .files_for_selection(
             &selection.selected_categories,
             &selection.selected_sounds,
-            &selection.sound_orders,
         )
         .is_empty()
     {
@@ -192,8 +191,6 @@ fn test_selection(
     state.player.play_selection(
         &selection.selected_categories,
         &selection.selected_sounds,
-        &selection.sound_orders,
-        selection.playback_order,
         selection.output_volume(),
         1.0,
     );
@@ -349,7 +346,6 @@ fn main() {
                 }
                 settings.selected_categories.retain(|name| !LEGACY_STARTER_ALBUMS.contains(&name.as_str()));
                 settings.selected_sounds.retain(|sound| !LEGACY_STARTER_ALBUMS.contains(&sound.category.as_str()));
-                settings.sound_orders.retain(|name, _| !LEGACY_STARTER_ALBUMS.contains(&name.as_str()));
                 settings.album_order = DEFAULT_ALBUMS.iter().map(|name| (*name).to_string()).collect();
                 if LEGACY_STARTER_ALBUMS.contains(&settings.bundle.as_str()) {
                     settings.bundle.clear();
@@ -371,8 +367,6 @@ fn main() {
                 player_ref.play_selection(
                     &s.selected_categories,
                     &s.selected_sounds,
-                    &s.sound_orders,
-                    s.playback_order,
                     s.output_volume(),
                     intensity,
                 );
@@ -481,8 +475,6 @@ fn main() {
                         state.player.play_selection(
                             &s.selected_categories,
                             &s.selected_sounds,
-                            &s.sound_orders,
-                            s.playback_order,
                             s.output_volume(),
                             0.8,
                         );
