@@ -172,3 +172,71 @@ pub fn is_nsfw_category(category: &str) -> bool {
 fn default_true() -> bool {
     true
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn disabling_mature_albums_removes_them_from_every_selection() {
+        let mut settings = Settings::default();
+        settings.nsfw_enabled = false;
+        settings.selected_categories = vec!["OG".into(), "Moan".into(), "Chodu CID".into()];
+        settings.selected_sounds = vec![
+            SelectedSound {
+                category: "OG".into(),
+                filename: "og_1.mp3".into(),
+            },
+            SelectedSound {
+                category: "Moan".into(),
+                filename: "moan_1.mp3".into(),
+            },
+        ];
+
+        settings.validate();
+
+        assert_eq!(settings.selected_categories, vec!["OG"]);
+        assert_eq!(
+            settings.selected_sounds,
+            vec![SelectedSound {
+                category: "OG".into(),
+                filename: "og_1.mp3".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn enabled_mature_albums_are_preserved() {
+        let mut settings = Settings::default();
+        settings.nsfw_enabled = true;
+        settings.selected_categories = vec!["Moan".into()];
+        settings.selected_sounds = vec![SelectedSound {
+            category: "Chodu CID".into(),
+            filename: "chodu_cid_1.mp3".into(),
+        }];
+
+        settings.validate();
+
+        assert_eq!(settings.selected_categories, vec!["Moan"]);
+        assert_eq!(settings.selected_sounds.len(), 1);
+        assert_eq!(settings.selected_sounds[0].category, "Chodu CID");
+    }
+
+    #[test]
+    fn validation_keeps_values_within_safe_ranges() {
+        let mut settings = Settings::default();
+        settings.microphone_sensitivity = 8.0;
+        settings.accelerometer_sensitivity = -1.0;
+        settings.cooldown_ms = 1;
+        settings.volume = 4.0;
+
+        settings.validate();
+
+        assert_eq!(settings.microphone_sensitivity, 1.0);
+        // A missing or invalid legacy per-input value inherits the shared
+        // sensitivity before bounds are applied.
+        assert_eq!(settings.accelerometer_sensitivity, 0.15);
+        assert_eq!(settings.cooldown_ms, 200);
+        assert_eq!(settings.volume, 1.0);
+    }
+}
