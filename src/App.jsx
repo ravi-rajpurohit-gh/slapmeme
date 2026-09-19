@@ -212,24 +212,29 @@ function App() {
     if (!activeBundle) return;
     updateSettings((current) => {
       const category = activeBundle.name;
-      if (current.selectedCategories.includes(category)) {
-        return {
-          ...current,
-          selectedCategories: current.selectedCategories.filter((name) => name !== category),
-          selectedSounds: activeSounds
-            .filter((sound) => sound.name !== filename)
+      const selectedNames = new Set(
+        current.selectedCategories.includes(category)
+          ? activeSounds.map((sound) => sound.name)
+          : current.selectedSounds
+            .filter((sound) => sound.category === category)
+            .map((sound) => sound.filename),
+      );
+      if (checked) selectedNames.add(filename);
+      else selectedNames.delete(filename);
+
+      const withoutPack = clearPack(current, category);
+      const allTracksChosen = activeSounds.length > 0
+        && activeSounds.every((sound) => selectedNames.has(sound.name));
+      if (allTracksChosen) return selectPack(withoutPack, activeBundle);
+      return {
+        ...withoutPack,
+        selectedSounds: [
+          ...withoutPack.selectedSounds,
+          ...activeSounds
+            .filter((sound) => selectedNames.has(sound.name))
             .map((sound) => ({ category, filename: sound.name })),
-        };
-      }
-      const withoutTrack = current.selectedSounds.filter((sound) =>
-        !(sound.category === category && sound.filename === filename));
-      const next = {
-        ...current,
-        selectedSounds: checked ? [...withoutTrack, { category, filename }] : withoutTrack,
+        ],
       };
-      const allTracksChosen = activeSounds.length > 0 && activeSounds.every((sound) =>
-        next.selectedSounds.some((item) => item.category === category && item.filename === sound.name));
-      return allTracksChosen ? selectPack(next, activeBundle) : next;
     });
   }
 
@@ -323,9 +328,6 @@ function App() {
     <header className="window-toolbar">
       <div className="app-title"><span className="app-mark" aria-hidden="true"><i /><i /><i /></span><span>Meme Machine</span></div>
       <div className="toolbar-controls">
-        <button className={`detection-control ${settings.enabled ? "on" : ""}`} type="button" onClick={() => updateSettings((current) => ({ ...current, enabled: !current.enabled }))}>
-          <span className="status-light" aria-hidden="true" /><span>{settings.enabled ? "Detection on" : "Detection paused"}</span>
-        </button>
         <div className="appearance-control" aria-label="Appearance">
           {["system", "light", "dark"].map((theme) => <button key={theme} type="button" className={settings.theme === theme ? "active" : ""} onClick={() => updateSettings((current) => ({ ...current, theme }))}>{theme[0].toUpperCase() + theme.slice(1)}</button>)}
         </div>
@@ -337,14 +339,13 @@ function App() {
         <p className="navigation-label">Meme Machine</p>
         <nav aria-label="Main navigation">
           <NavigationButton active={view === "library"} icon="▦" label="Library" onClick={() => setView("library")} />
-          <NavigationButton active={view === "trigger"} icon="◉" label="Detection" onClick={() => setView("trigger")} />
+          <NavigationButton active={view === "trigger"} icon="⚙" label="Settings" onClick={() => setView("trigger")} />
         </nav>
         <div className="navigation-spacer" />
-        <section className="mature-control"><div><p className="mature-title">Mature albums</p><p className="mature-copy">Exclude them from your mix.</p></div><Switch checked={settings.nsfwEnabled} label="Include mature albums" onChange={toggleMatureAlbums} /></section>
       </aside>
 
       <main className="main-content">
-        {view === "library" ? <LibraryView albums={albums} settings={settings} activeAlbum={activeAlbum} selectedTotal={selectedTotal} onOpen={openAlbum} onNewPack={() => setNewPackOpen(true)} onTest={testMix} /> : <DetectionView settings={settings} accelerometerAvailable={accelerometerAvailable} updateSettings={updateSettings} />}
+        {view === "library" ? <LibraryView albums={albums} settings={settings} activeAlbum={activeAlbum} selectedTotal={selectedTotal} onOpen={openAlbum} onNewPack={() => setNewPackOpen(true)} onTest={testMix} /> : <SettingsView settings={settings} accelerometerAvailable={accelerometerAvailable} updateSettings={updateSettings} onToggleMature={toggleMatureAlbums} />}
       </main>
 
       {view === "library" && <Inspector activeBundle={activeBundle} activeSounds={activeSounds} selectionState={activeState} selectedCount={activeSelected} allTracksSelected={allIndividualTracksSelected} settings={settings} onToggleWhole={toggleWholePack} onToggleTrack={toggleSound} onToggleAll={toggleAllTracks} onAddSounds={addSounds} />}
@@ -377,7 +378,7 @@ function AlbumCard({ album, settings, active, onOpen }) {
   const info = packInfo(album.name);
   const state = selectionState(settings, album);
   const locked = info.nsfw && !settings.nsfwEnabled;
-  const badge = locked ? "⌁" : state === "all" ? "✓" : state === "partial" ? "–" : "";
+  const badge = state === "all" ? "✓" : "";
   const detail = locked ? "Mature albums off" : state === "all" ? `${album.count} included` : state === "partial" ? `${selectedCount(settings, album)} of ${album.count} included` : `${album.count} sounds`;
   return <button className={`album-card ${state} ${active ? "active" : ""} ${locked ? "locked" : ""}`} type="button" onClick={() => onOpen(album)}>
     <span className={`pack-art ${info.art}`}><span className="art-symbol">{info.symbol}</span><span className="art-label">{info.label}</span>{badge && <span className="selection-badge">{badge}</span>}</span>
@@ -398,9 +399,13 @@ function Inspector({ activeBundle, activeSounds, selectionState: state, selected
   </div></aside>;
 }
 
-function DetectionView({ settings, accelerometerAvailable, updateSettings }) {
+function SettingsView({ settings, accelerometerAvailable, updateSettings, onToggleMature }) {
   const update = (changes) => updateSettings((current) => ({ ...current, ...changes }));
-  return <section className="view active"><div className="content-heading"><div><p className="eyebrow">DETECTION</p><h1>Make it react</h1><p className="heading-detail">Choose how Meme Machine notices a moment.</p></div></div>
+  return <section className="view active"><div className="content-heading"><div><p className="eyebrow">SETTINGS</p><h1>Settings</h1><p className="heading-detail">Control detection, your mix, and playback behavior.</p></div></div>
+    <section className="preferences-group"><h2>General</h2>
+      <div className="preference-row"><div><strong>Detection</strong><span>{settings.enabled ? "Listening for your trigger" : "Paused"}</span></div><Switch checked={settings.enabled} label="Enable detection" onChange={(enabled) => update({ enabled })} /></div>
+      <div className="preference-row"><div><strong>Mature albums</strong><span>Include mature packs in your mix</span></div><Switch checked={settings.nsfwEnabled} label="Include mature albums" onChange={onToggleMature} /></div>
+    </section>
     <section className="preferences-group"><h2>Input</h2>
       <div className="preference-row"><div><strong>Detection source</strong><span>{accelerometerAvailable ? "Choose microphone or motion input" : "Motion is not available on this Mac"}</span></div><div className="segmented-control"><button type="button" className={settings.detectionMode === "microphone" ? "active" : ""} onClick={() => update({ detectionMode: "microphone" })}>Microphone</button><button type="button" disabled={!accelerometerAvailable} className={settings.detectionMode === "accelerometer" ? "active" : ""} onClick={() => update({ detectionMode: "accelerometer" })}>Motion</button></div></div>
       <RangeRow label="Microphone sensitivity" detail="Higher responds to quieter taps" value={settings.microphoneSensitivity} min="0.01" max="0.5" step="0.01" format={(value) => Number(value).toFixed(2)} onChange={(microphoneSensitivity) => update({ microphoneSensitivity, sensitivity: microphoneSensitivity })} />
