@@ -133,6 +133,18 @@ npm run build
 
 Produces platform-specific installers in `src-tauri/target/release/bundle/`.
 
+### Share a release
+
+Meme Machine is a native [Tauri](https://tauri.app/) desktop application, so it is distributed as platform-native installers rather than as a web site.
+
+- On an Apple Silicon Mac, `npm run build` produces the local installer at `src-tauri/target/release/bundle/dmg/Meme Machine_0.1.0_aarch64.dmg`.
+- Build Windows releases on a Windows runner; Tauri produces a `.msi` installer and an NSIS `.exe` setup program under `src-tauri/target/release/bundle/`.
+- Push a version tag such as `v0.1.0` to GitHub to run the included release workflow. It creates a draft GitHub Release with Windows installers and a universal macOS DMG, plus the existing Linux artifacts.
+
+For public distribution, configure the GitHub repository secrets `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, and `APPLE_TEAM_ID`. This signs and notarizes the macOS build, avoiding the normal Gatekeeper warning. Windows installers should likewise be code-signed with an Authenticode certificate before public release to avoid SmartScreen warnings.
+
+The installer does **not** include personal or licensed sound clips. On first launch, each user gets an empty local sound library and can add their own files; this keeps user libraries separate from application updates.
+
 ## Usage
 
 1. Launch the app - it sits in your **system tray**
