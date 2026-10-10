@@ -162,7 +162,23 @@ This software is provided "as is", without warranty of any kind. The author is n
 
 On macOS, the app creates these empty folders on first launch: `~/Library/Application Support/com.mememachine.desktop/sounds/Trendy`, `OG`, `OG-Indian`, `TV`, `Moan`, and `Chodu CID`.
 
-Drop audio directly into the matching folder, or select a pack in the app and use **Details → Add Sounds…**. Supported formats are `wav`, `mp3`, `ogg`, and `flac`; your library persists across updates.
+Drop audio directly into the matching folder, or select a pack in the app and use **Add sounds** in its inspector. Supported formats are `wav`, `mp3`, `ogg`, and `flac`; your library persists across updates.
+
+### Trim silence safely
+
+For immediate playback, use the included tool to remove leading and trailing silence from every playable file. It analyzes first and does not alter files until `--apply` is provided:
+
+```bash
+python3 scripts/trim_silence.py
+python3 scripts/trim_silence.py --apply
+```
+
+The apply command creates a timestamped full-library backup under `~/Library/Application Support/com.mememachine.desktop/backups/` before it replaces any audio. It requires [FFmpeg](https://ffmpeg.org/); on macOS, install it with `brew install ffmpeg`. To restore a backup deliberately:
+
+```bash
+python3 scripts/trim_silence.py --apply --restore-from \
+  "~/Library/Application Support/com.mememachine.desktop/backups/sounds-before-trim-YYYYMMDD-HHMMSS"
+```
 
 ## Project Site
 
